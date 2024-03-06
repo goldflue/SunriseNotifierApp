@@ -12,6 +12,7 @@ using System.Text;
 using SunriseNotifier.Services;
 using System.Linq;
 using System.Net.Http.Headers;
+using SunriseNotifier.Models;
 
 namespace SunriseNotifier
 {
@@ -33,7 +34,7 @@ namespace SunriseNotifier
 			var nextSunrise = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc).AddSeconds(forecast.City.Sunrise).AddDays(1).ToLocalTime();
 
 			var closestDataPoints = weatherService.FindClosestWeatherDataPoints(forecast.List, nextSunrise);
-
+			var prediction = SunrisePredictor.PredictSunriseQuality(closestDataPoints[0], closestDataPoints[1]);
 			
 
 			// Prepare the request to the email API.
@@ -41,8 +42,8 @@ namespace SunriseNotifier
 			{
 				from = "onboarding@resend.dev",
 				to = "goldflue@gmail.com",
-				subject = "Test fra function app",
-				html = "<p>Denne email er blevet sendt</p>"
+				subject = "Solopgang i morgen",
+				html = $"<p>{prediction}</p>"
 			};
 
 			var jsonContent = JsonConvert.SerializeObject(emailData);
