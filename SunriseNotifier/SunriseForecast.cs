@@ -13,60 +13,38 @@ using SunriseNotifier.Services;
 using System.Linq;
 using System.Net.Http.Headers;
 using SunriseNotifier.Models;
-using Microsoft.Azure.WebJobs;
 
-namespace SunriseNotifier
-{
+namespace SunriseNotifier;
+
 
     public static class SunriseForecast
     {
-		// See https://sunsethue.com/app for inspiration
-		private static readonly HttpClient client = new HttpClient();
-		private static readonly WeatherService weatherService = new WeatherService(client);
-		[FunctionName("SunriseForecast")]
-		public static async Task Run([TimerTrigger("0 5 0 * * *")] TimerInfo myTimer, ILogger log)
+	// See https://sunsethue.com/app for inspiration
+	private static readonly HttpClient client = new HttpClient();
+	private static readonly WeatherService weatherService = new WeatherService(client);
+	private static readonly EmailService emailService = new EmailService(client);
+
+	[FunctionName("SunriseForecast")]
+	public static async Task Run([TimerTrigger("0 30 17 * * 1-5")] TimerInfo myTimer, ILogger log) 
+	{
+		log.LogInformation("SunriseForecast triggered");
+
+		var forecast = await weatherService.GetFiveDayForecastAsync();
+		var nextSunrise = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc).AddSeconds(forecast.City.Sunrise).AddDays(1).ToLocalTime();
+
+		var closestDataPoints = weatherService.FindClosestWeatherDataPoints(forecast.List, nextSunrise);
+		var prediction = SunrisePredictor.PredictSunriseQuality(closestDataPoints[0], closestDataPoints[1], nextSunrise);
+
+		if (prediction.ShouldRecommend == true)
 		{
-			log.LogInformation("SunriseForecast triggered");
-
-			var forecast = await weatherService.GetFiveDayForecastAsync();
-			var nextSunrise = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc).AddSeconds(forecast.City.Sunrise).AddDays(1).ToLocalTime();
-
-			var closestDataPoints = weatherService.FindClosestWeatherDataPoints(forecast.List, nextSunrise);
-			var prediction = SunrisePredictor.PredictSunriseQuality(closestDataPoints[0], closestDataPoints[1]);
+			var emails = Environment.GetEnvironmentVariable("ReceiverEmails", EnvironmentVariableTarget.Process)?.Split(';');
 			
-
-			// Prepare the request to the email API.
-			var emailData = new
+			foreach ( var email in emails ) 
 			{
-				from = "onboarding@resend.dev",
-				to = "goldflue@gmail.com",
-				subject = "Solopgang i morgen",
-				html = $"<p>{prediction}</p>"
-			};
-
-			var jsonContent = JsonConvert.SerializeObject(emailData);
-			var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
-			// Create HttpRequestMessage
-			var request = new HttpRequestMessage(HttpMethod.Post, "https://api.resend.com/emails")
-			{
-				Content = content
-			};
-
-			var apiKey = Environment.GetEnvironmentVariable("ResendAPIKey", EnvironmentVariableTarget.Process);
-			request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey); 
-			
-			// Send the request
-			var response = await client.SendAsync(request);
-			var responseContent = await response.Content.ReadAsStringAsync();
-
-			if (response.IsSuccessStatusCode)
-			{
-				log.LogInformation($"Email sent successfully: {responseContent}");
-			}
-			else
-			{
-				log.LogError($"Failed to send email: {responseContent}");
+				await emailService.SendVerdictEmail(prediction, email);
 			}
 		}
+		
+		
 	}
 }

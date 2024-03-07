@@ -8,7 +8,7 @@ namespace SunriseNotifier.Models
 {
 	public static  class SunrisePredictor
 	{
-		public static string PredictSunriseQuality(WeatherDataPoint beforeSunrise, WeatherDataPoint afterSunrise)
+		public static SunrisePrediction PredictSunriseQuality(WeatherDataPoint beforeSunrise, WeatherDataPoint afterSunrise, DateTime nextSunrise)
 		{
 			// Criteria for a good sunrise
 			const int idealCloudCover = 40; // Ideal cloud cover in percentage
@@ -23,23 +23,28 @@ namespace SunriseNotifier.Models
 
 			if (isCloudCoverIdeal && isVisibilityClear && isPrecipitationLow)
 			{
-				return "High potential for a good sunrise";
+				var prediction = new SunrisePrediction();
+				prediction.ShouldRecommend = true;
+				prediction.DegreesCelcius = beforeSunrise.Main.Temp.ToString();
+				prediction.Wind = beforeSunrise.Wind.Speed.ToString();
+				prediction.SunriseTime = nextSunrise.ToString();
+				return prediction;
 			}
 			else if (!isCloudCoverIdeal)
 			{
-				return "Cloud cover is not ideal for a good sunrise";
+				return null;
 			}
 			else if (!isVisibilityClear)
 			{
-				return "Visibility is low, which may hinder a good sunrise";
+				return null;
 			}
 			else if (!isPrecipitationLow)
 			{
-				return "Precipitation may obscure the sunrise";
+				return null;
 			}
 			else
 			{
-				return "Conditions are not ideal for a good sunrise";
+				return null;
 			}
 		}
 	}
