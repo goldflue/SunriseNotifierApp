@@ -10,7 +10,7 @@ namespace SunriseNotifier.Models
 	{
 		public static string PredictSunriseQuality(WeatherDataPoint beforeSunrise, WeatherDataPoint afterSunrise)
 		{
-			// Example criteria for a good sunrise
+			// Criteria for a good sunrise
 			const int idealCloudCover = 40; // Ideal cloud cover in percentage
 			const int maxCloudCover = 70; // Maximum cloud cover percentage for a potential good sunrise
 			const double minVisibility = 10000; // Minimum visibility in meters (10 km is generally clear)

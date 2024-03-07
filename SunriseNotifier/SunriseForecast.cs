@@ -13,6 +13,7 @@ using SunriseNotifier.Services;
 using System.Linq;
 using System.Net.Http.Headers;
 using SunriseNotifier.Models;
+using Microsoft.Azure.WebJobs;
 
 namespace SunriseNotifier
 {
@@ -23,9 +24,7 @@ namespace SunriseNotifier
 		private static readonly HttpClient client = new HttpClient();
 		private static readonly WeatherService weatherService = new WeatherService(client);
 		[FunctionName("SunriseForecast")]
-		public static async Task<IActionResult> Run(
-		[HttpTrigger(AuthorizationLevel.Function, "get", Route = null)] HttpRequest req,
-		ILogger log)
+		public static async Task Run([TimerTrigger("0 5 0 * * *")] TimerInfo myTimer, ILogger log)
 		{
 			log.LogInformation("SunriseForecast triggered");
 
@@ -63,12 +62,10 @@ namespace SunriseNotifier
 			if (response.IsSuccessStatusCode)
 			{
 				log.LogInformation($"Email sent successfully: {responseContent}");
-				return new OkObjectResult("Email sent successfully.");
 			}
 			else
 			{
 				log.LogError($"Failed to send email: {responseContent}");
-				return new BadRequestObjectResult($"Failed to send email: {responseContent}");
 			}
 		}
 	}
