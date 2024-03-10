@@ -21,31 +21,19 @@ namespace SunriseNotifier.Models
 			bool isVisibilityClear = beforeSunrise.Visibility >= minVisibility && afterSunrise.Visibility >= minVisibility;
 			bool isPrecipitationLow = (beforeSunrise.Rain?.ThreeHours ?? 0) <= maxPrecipitation && (afterSunrise.Rain?.ThreeHours ?? 0) <= maxPrecipitation;
 
-			if (isCloudCoverIdeal && isVisibilityClear && isPrecipitationLow)
+			// Determine if the sunrise should be recommended
+			bool shouldRecommend = isCloudCoverIdeal && isVisibilityClear && isPrecipitationLow;
+
+			if (!isCloudCoverIdeal)
 			{
-				var prediction = new SunrisePrediction();
-				prediction.ShouldRecommend = true;
-				prediction.DegreesCelcius = beforeSunrise.Main.Temp.ToString();
-				prediction.Wind = beforeSunrise.Wind.Speed.ToString();
-				prediction.SunriseTime = nextSunrise.ToString();
-				return prediction;
+				shouldRecommend = true;
 			}
-			else if (!isCloudCoverIdeal)
-			{
-				return null;
-			}
-			else if (!isVisibilityClear)
-			{
-				return null;
-			}
-			else if (!isPrecipitationLow)
-			{
-				return null;
-			}
-			else
-			{
-				return null;
-			}
+
+			return new SunrisePrediction(shouldRecommend,
+										 nextSunrise.ToString(),
+										 beforeSunrise.Main.Temp.ToString(),
+										 beforeSunrise.Wind.Speed.ToString());
 		}
+
 	}
 }
